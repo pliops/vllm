@@ -115,9 +115,8 @@ It can be used to cap sampled values at an upper bound (e.g. to not exceed `--ma
 ```json
 {
     "distribution": "lognormal",
-    "mean": 6,
-    "sigma": 4,
-    "max": 1500
+    "average": 1000,
+    "max": 5000
 }
 ```
 
