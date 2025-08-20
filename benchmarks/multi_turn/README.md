@@ -115,9 +115,8 @@ Can be used to make sure that the total number of tokens in every request does n
 ```json
 {
     "distribution": "lognormal",
-    "mean": 6,
-    "sigma": 4,
-    "max": 1500
+    "average": 1000,
+    "max": 5000
 }
 ```
 
