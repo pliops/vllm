@@ -214,6 +214,9 @@ class MultiConnector(KVConnectorBase_V1):
         for c in self._connectors:
             yield from c.take_events()
 
+    def _reset_connector_cache(self) -> bool:
+        return all(c._reset_connector_cache() for c in self._connectors)
+
     @classmethod
     def get_required_kvcache_layout(
             cls, vllm_config: "VllmConfig") -> Optional[str]:

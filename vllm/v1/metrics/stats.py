@@ -42,6 +42,9 @@ class SchedulerStats:
     prefix_cache_stats: PrefixCacheStats = field(
         default_factory=PrefixCacheStats)
 
+    connector_prefix_cache_stats: Optional[PrefixCacheStats] = field(
+        default=None)
+
     spec_decoding_stats: Optional[SpecDecodingStats] = None
 
     num_corrupted_reqs: int = 0

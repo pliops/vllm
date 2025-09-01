@@ -477,6 +477,9 @@ class Scheduler(SchedulerInterface):
                         new_computed_blocks + new_blocks,
                         num_external_computed_tokens,
                     )
+                    if self.log_stats:
+                        self.connector.update_prefix_cache_stats(
+                            request.num_tokens, num_external_computed_tokens)
 
                 # Request was already popped from self.waiting
                 # unless it was re-added above due to new_blocks being None.
@@ -1140,7 +1143,8 @@ class Scheduler(SchedulerInterface):
         return len(self.finished_req_ids) > 0
 
     def reset_prefix_cache(self) -> bool:
-        return self.kv_cache_manager.reset_prefix_cache()
+        return self.kv_cache_manager.reset_prefix_cache() and (
+            self.connector.reset_prefix_cache() if self.connector else True)
 
     def make_stats(
         self,
@@ -1149,12 +1153,15 @@ class Scheduler(SchedulerInterface):
         if not self.log_stats:
             return None
         prefix_cache_stats = self.kv_cache_manager.make_prefix_cache_stats()
+        connector_prefix_cache_stats = self.connector.make_prefix_cache_stats(
+        ) if self.connector is not None else None
         assert prefix_cache_stats is not None
         return SchedulerStats(
             num_running_reqs=len(self.running),
             num_waiting_reqs=len(self.waiting),
             kv_cache_usage=self.kv_cache_manager.usage,
             prefix_cache_stats=prefix_cache_stats,
+            connector_prefix_cache_stats=connector_prefix_cache_stats,
             spec_decoding_stats=spec_decoding_stats,
             num_corrupted_reqs=sum(req.is_output_corrupted
                                    for req in self.running),

@@ -43,6 +43,7 @@ import torch
 
 from vllm.logger import init_logger
 from vllm.v1.core.sched.output import SchedulerOutput
+from vllm.v1.metrics.stats import PrefixCacheStats
 from vllm.v1.outputs import KVConnectorOutput
 
 if TYPE_CHECKING:
@@ -87,6 +88,8 @@ class KVConnectorBase_V1(ABC):
         self._connector_metadata: Optional[KVConnectorMetadata] = None
         self._vllm_config = vllm_config
         self._role = role
+        # FIXME: make prefix cache stats conditional on log_stats
+        self.prefix_cache_stats = PrefixCacheStats()
 
     @property
     def role(self) -> KVConnectorRole:
@@ -343,3 +346,48 @@ class KVConnectorBase_V1(ABC):
             raise TypeError("get_required_kvcache_layout should not be called "
                             "on the abstract base class")
         return None
+
+    def update_prefix_cache_stats(self, request_num_tokens: int,
+                                  num_external_tokens: int):
+        """
+        Update prefix cache statistics for a request.
+
+        Args:
+            request_num_tokens (int): The number of tokens in the request.
+            num_external_tokens (int): the number of tokens that will be
+                loaded from the external KV cache.
+        """
+        self.prefix_cache_stats.requests += 1
+        self.prefix_cache_stats.queries += request_num_tokens
+        self.prefix_cache_stats.hits += num_external_tokens
+
+    def make_prefix_cache_stats(self) -> Optional[PrefixCacheStats]:
+        """Get (and reset) the prefix cache stats.
+
+        Returns:
+            The current prefix caching stats.
+        """
+        stats = self.prefix_cache_stats
+        self.prefix_cache_stats = PrefixCacheStats()
+        return stats
+
+    def reset_prefix_cache(self) -> bool:
+        """Reset prefix cache. This function may be used in RLHF
+        flows to invalidate prefix caching after the weights are updated,
+        or used for resetting prefix caching status for benchmarking.
+
+        Returns:
+            bool: True if the prefix cache is successfully reset,
+            False otherwise.
+        """
+        self.prefix_cache_stats.reset = True
+        return self._reset_connector_cache()
+
+    def _reset_connector_cache(self) -> bool:
+        """
+        Connector-specific implementation to reset KV cache data.
+
+        Returns:
+            bool: True if the cache is successfully cleared, False otherwise.
+        """
+        return True
